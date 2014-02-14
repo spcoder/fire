@@ -10,26 +10,45 @@ import (
 )
 
 var (
+	responseType       reflect.Type
+	requestType        reflect.Type
 	rootControllerName string
-	controllers        map[string]interface{}
+	controllers        map[string]RegisteredController
 )
 
 func init() {
-	controllers = make(map[string]interface{})
+	responseType = reflect.TypeOf(new(Response)).Elem()
+	requestType = reflect.TypeOf(new(Request))
+	controllers = make(map[string]RegisteredController)
 }
 
 func AddRootController(c Controller) {
 	rootControllerName = c.Name()
-	controllers[c.Name()] = c
+	controllers[c.Name()] = RegisteredController{ControllerValue: reflect.ValueOf(c), Actions: make([]RegisteredAction, 0)}
+	extractActionsFromController(c)
 }
 
 func AddController(c Controller) {
-	controllers[c.Name()] = c
+	controllers[c.Name()] = RegisteredController{ControllerValue: reflect.ValueOf(c), Actions: make([]RegisteredAction, 0)}
+	// extractActionsFromController(c)
 }
 
 func AddControllers(cs ...Controller) {
 	for _, c := range cs {
-		controllers[c.Name()] = c
+		// extractActionsFromController(c)
+		controllers[c.Name()] = RegisteredController{ControllerValue: reflect.ValueOf(c), Actions: make([]RegisteredAction, 0)}
+	}
+}
+
+func extractActionsFromController(c Controller) {
+	ctrlType := reflect.TypeOf(c)
+	for i := 0; i < ctrlType.NumMethod(); i++ {
+		method := ctrlType.Method(i)
+		if method.Type.Kind() == reflect.Func && method.Type.NumIn() == 3 {
+			if method.Type.In(1) == responseType && method.Type.In(2) == requestType {
+				controllers[c.Name()].Actions = append(controllers[c.Name()].Actions, RegisteredAction{Name: method.Name, Index: i})
+			}
+		}
 	}
 }
 
@@ -94,9 +113,9 @@ func parsePath(req *http.Request) (controllerName, actionName string, err error)
 
 func runAction(controllerName, actionName string, rw http.ResponseWriter, req *http.Request) (err error) {
 	ctrl := controllers[controllerName]
-	if ctrl == nil {
-		return errors.New("Controller not found")
-	}
+	// if ctrl == nil {
+	// 	return errors.New("Controller not found")
+	// }
 
 	ctrlValue := reflect.ValueOf(ctrl)
 	ctrlType := ctrlValue.Type()
@@ -111,11 +130,10 @@ func runAction(controllerName, actionName string, rw http.ResponseWriter, req *h
 
 	if mIndex == -1 {
 		return errors.New("Action not found")
-	} else {
-		// TODO: check to see if method implements http.Handle
 	}
 
-	in := []reflect.Value{reflect.ValueOf(rw), reflect.ValueOf(req)}
+	resp := Response{ResponseWriter: rw}
+	in := []reflect.Value{reflect.ValueOf(resp), reflect.ValueOf(req)}
 	ctrlValue.Method(mIndex).Call(in)
 	return nil
 }
