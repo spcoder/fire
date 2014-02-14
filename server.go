@@ -9,49 +9,6 @@ import (
 	"strings"
 )
 
-var (
-	responseType       reflect.Type
-	requestType        reflect.Type
-	rootControllerName string
-	controllers        map[string]RegisteredController
-)
-
-func init() {
-	responseType = reflect.TypeOf(new(Response)).Elem()
-	requestType = reflect.TypeOf(new(Request))
-	controllers = make(map[string]RegisteredController)
-}
-
-func AddRootController(c Controller) {
-	rootControllerName = c.Name()
-	controllers[c.Name()] = RegisteredController{ControllerValue: reflect.ValueOf(c), Actions: make([]RegisteredAction, 0)}
-	extractActionsFromController(c)
-}
-
-func AddController(c Controller) {
-	controllers[c.Name()] = RegisteredController{ControllerValue: reflect.ValueOf(c), Actions: make([]RegisteredAction, 0)}
-	// extractActionsFromController(c)
-}
-
-func AddControllers(cs ...Controller) {
-	for _, c := range cs {
-		// extractActionsFromController(c)
-		controllers[c.Name()] = RegisteredController{ControllerValue: reflect.ValueOf(c), Actions: make([]RegisteredAction, 0)}
-	}
-}
-
-func extractActionsFromController(c Controller) {
-	ctrlType := reflect.TypeOf(c)
-	for i := 0; i < ctrlType.NumMethod(); i++ {
-		method := ctrlType.Method(i)
-		if method.Type.Kind() == reflect.Func && method.Type.NumIn() == 3 {
-			if method.Type.In(1) == responseType && method.Type.In(2) == requestType {
-				controllers[c.Name()].Actions = append(controllers[c.Name()].Actions, RegisteredAction{Name: method.Name, Index: i})
-			}
-		}
-	}
-}
-
 func Start(port int) {
 	http.HandleFunc("/", frontController)
 
@@ -72,7 +29,7 @@ func Start(port int) {
 
 func frontController(rw http.ResponseWriter, req *http.Request) {
 	if pathIsRoot(req) {
-		if err := runAction(rootControllerName, "index", rw, req); err != nil {
+		if err := runAction(getRootControllerName(), getDefaultActionName(), rw, req); err != nil {
 			serveNotFound(rw)
 		}
 	} else {
@@ -98,6 +55,12 @@ func serveNotFound(rw http.ResponseWriter) {
 	io.WriteString(rw, "Not Found")
 }
 
+func serveInternalError(rw http.ResponseWriter) {
+	rw.WriteHeader(http.StatusInternalServerError)
+	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	io.WriteString(rw, "Internal Server Error")
+}
+
 func pathIsRoot(req *http.Request) bool {
 	return req.URL.Path == "/"
 }
@@ -112,28 +75,14 @@ func parsePath(req *http.Request) (controllerName, actionName string, err error)
 }
 
 func runAction(controllerName, actionName string, rw http.ResponseWriter, req *http.Request) (err error) {
-	ctrl := controllers[controllerName]
-	// if ctrl == nil {
-	// 	return errors.New("Controller not found")
-	// }
-
-	ctrlValue := reflect.ValueOf(ctrl)
-	ctrlType := ctrlValue.Type()
-	mIndex := -1
-
-	for i := 0; i < ctrlType.NumMethod(); i++ {
-		if actionName == strings.ToLower(ctrlType.Method(i).Name) {
-			mIndex = i
-			break
-		}
-	}
-
-	if mIndex == -1 {
+	ai := findAction(controllerName, actionName)
+	if ai == nil {
 		return errors.New("Action not found")
 	}
 
-	resp := Response{ResponseWriter: rw}
-	in := []reflect.Value{reflect.ValueOf(resp), reflect.ValueOf(req)}
-	ctrlValue.Method(mIndex).Call(in)
+	resp := &Response{ControllerName: controllerName, ActionName: actionName, ResponseWriter: rw}
+	rr := &Request{req}
+	in := []reflect.Value{reflect.ValueOf(resp), reflect.ValueOf(rr)}
+	ai.controllerValue.Method(ai.methodIndex).Call(in)
 	return nil
 }
