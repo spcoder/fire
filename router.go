@@ -1,7 +1,6 @@
 package fire
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -47,9 +46,6 @@ func registerController(c Controller) {
 		method := ctrlType.Method(i)
 		if method.Type.Kind() == reflect.Func && method.Type.NumIn() == 3 {
 			if method.Type.In(1) == _responseType && method.Type.In(2) == _requestType {
-
-				fmt.Println(ctrlValue.Elem().Type().Name(), "#", method.Name, "is an action")
-
 				_actions[c.Name()+"/"+strings.ToLower(method.Name)] = &actionInfo{controllerValue: ctrlValue, methodIndex: i}
 			}
 		}

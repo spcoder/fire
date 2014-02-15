@@ -9,17 +9,24 @@ import (
 	"strings"
 )
 
+type pageData struct {
+	Page
+	Content template.HTML
+}
+
 var (
+	_basePath  string
 	_templates map[string]*template.Template
 )
 
 func init() {
+	_basePath = filepath.Join("app", "templates")
 	_templates = make(map[string]*template.Template)
 	cacheTemplates()
 }
 
 func cacheTemplates() {
-	if filenames, err := filepath.Glob(filepath.Join("templates", "*", "*.html")); err != nil {
+	if filenames, err := filepath.Glob(filepath.Join(_basePath, "*", "*.html")); err != nil {
 		panic(err)
 	} else {
 		for _, filename := range filenames {
@@ -37,47 +44,35 @@ func cacheTemplates() {
 	}
 }
 
-func renderTemplate(resp Response, controllerName, templateName, layoutName, keywords, description string, data interface{}) (err error) {
-	layoutPath := getLayoutPath(layoutName)
-	var layoutBuffer bytes.Buffer
-	if tmpl := _templates[layoutPath]; tmpl != nil {
-		err = _templates[layoutPath].Execute(&layoutBuffer, nil)
-		if err != nil {
-			return
-		}
-	}
-
-	templatePath := getTemplatePath(controllerName, templateName)
+func renderHTML(resp Response, templatePath, layoutPath string, p Page) (err error) {
 	var templateBuffer bytes.Buffer
-	if tmpl := _templates[templatePath]; tmpl != nil {
-		err = _templates[templatePath].Execute(&templateBuffer, data)
+	if tmpl := _templates[filepath.Join(_basePath, templatePath)]; tmpl != nil {
+		err = tmpl.Execute(&templateBuffer, p)
 		if err != nil {
 			return
 		}
 	}
 
-	html := replaceTokens(layoutBuffer, templateBuffer, keywords, description)
-	io.WriteString(resp, html)
-	return
-}
+	pdata := pageData{Page: p, Content: template.HTML(templateBuffer.String())}
 
-func replaceTokens(layout, template bytes.Buffer, keywords, description string) (html string) {
-	html = strings.Replace(layout.String(), "%content%", template.String(), -1)
-	html = strings.Replace(html, "%keywords%", keywords, -1)
-	html = strings.Replace(html, "%description%", description, -1)
-	return
-}
+	var layoutBuffer bytes.Buffer
+	if tmpl := _templates[filepath.Join(_basePath, layoutPath)]; tmpl != nil {
+		err = tmpl.Execute(&layoutBuffer, pdata)
+		if err != nil {
+			return
+		}
+	}
 
-func getByteBuffer(path string, b *bytes.Buffer, data interface{}) (err error) {
-	return _templates[path].Execute(b, data)
+	io.WriteString(resp, layoutBuffer.String())
+	return
 }
 
 func getLayoutPath(name string) string {
-	return filepath.Join("templates", "layouts", addHTMLExtension(name))
+	return filepath.Join("layouts", addHTMLExtension(name))
 }
 
 func getTemplatePath(controllerName, name string) string {
-	return filepath.Join("templates", controllerName, addHTMLExtension(name))
+	return filepath.Join(controllerName, addHTMLExtension(name))
 }
 
 func addHTMLExtension(filename string) string {

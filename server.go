@@ -9,15 +9,19 @@ import (
 	"strings"
 )
 
-func Start(port int) {
+func Start() {
+	StartWithPort(4000)
+}
+
+func StartWithPort(port int) {
 	http.HandleFunc("/", frontController)
 
 	// static files; in production these *should* be served by a web server
 	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("./public/"))))
-	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./public/css/"))))
-	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("./public/img/"))))
-	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./public/js/"))))
+	http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./www/"))))
+	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./www/css/"))))
+	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("./www/img/"))))
+	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./www/js/"))))
 
 	fmt.Printf("Listening on port %d\n", port)
 	addr := fmt.Sprintf(":%d", port)
