@@ -1,0 +1,63 @@
+*,html { 
+  margin: 0; 
+  padding: 0; 
+  -webkit-font-smoothing: antialiased; 
+}
+
+body { 
+  font-family: "Oxygen", sans-serif; 
+  font-size: 22px;  
+  background: #f0f0e8;
+  color: #474747;
+  margin: 2em 0 0 0;
+}
+
+a, a:active, a:visited, a:hover {
+}
+
+h1, h2, h3 {
+  font-family: "Paytone One", sans-serif;
+  line-height: 1em;
+  letter-spacing: -1px;
+}
+
+h1 {
+  font-size: 42px;
+}
+
+h2 { 
+  font-size: 32px;
+}
+
+h3 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+p {
+  margin: 1em 0;
+}
+
+pre { 
+  font-size: 16px;
+}
+
+.hljs {
+  background: inherit;
+}
+
+.hljs-keyword,
+.assignment,
+.hljs-literal,
+.css .rule .hljs-keyword,
+.hljs-winutils,
+.javascript .hljs-title,
+.lisp .hljs-title,
+.hljs-subst {
+  color: #F2502C;
+}
+
+.container { 
+  width: 1120px;
+  margin: auto;
+}

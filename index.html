@@ -1,1 +1,41 @@
-Hello World
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Fire is the easiest web framework to use for the Go programming language.">
+    <meta name="keywords" content="golang web framework, golang framework, go programming web framework">
+    <title>Fire - A Simple Web Framework for Go</title>
+    <link rel="icon" type="image/png" href="http://fireframework.com/favicon.png">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Paytone+One|Oxygen:400,300,700">
+    <link rel="stylesheet" href="docco.css">
+    <link rel="stylesheet" type="text/css" href="style.css">    
+    <script src="highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+  <body>
+    <div class="container">
+      <img src="logo.png" alt="Fire"/>
+      <h1>A Lightweight Web Framework for Go</h1>
+      <br><br>
+      <h2>Coming Soon!</h2>
+      <pre>
+        <code>
+package main
+
+import (
+  "github.com/spcoder/fire"
+  "path/to/controllers"
+)
+
+func main() {
+  fire.AddRootController(&RootController)
+  fire.AddControllers(&FooController, &BarController)
+  fire.Start()
+}
+        </code>
+      </pre>
+    </div>
+  </body>
+</html>
