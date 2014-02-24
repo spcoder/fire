@@ -9,24 +9,26 @@ import (
 	"strings"
 )
 
-type pageData struct {
-	Page
-	Content template.HTML
-}
-
 var (
-	_basePath  string
 	_templates map[string]*template.Template
 )
 
-func init() {
-	_basePath = filepath.Join("app", "templates")
+type layoutData struct {
+	Content template.HTML
+	Context interface{}
+}
+
+func initTemplates() {
 	_templates = make(map[string]*template.Template)
 	cacheTemplates()
 }
 
+func getBasePath() string {
+	return TemplateFileBase()
+}
+
 func cacheTemplates() {
-	if filenames, err := filepath.Glob(filepath.Join(_basePath, "*", "*.html")); err != nil {
+	if filenames, err := filepath.Glob(filepath.Join(getBasePath(), "*", "*.html")); err != nil {
 		panic(err)
 	} else {
 		for _, filename := range filenames {
@@ -44,26 +46,27 @@ func cacheTemplates() {
 	}
 }
 
-func renderHTML(resp Response, templatePath, layoutPath string, p Page) (err error) {
+func renderHTML(resp Response, templatePath, layoutPath string, context interface{}) (err error) {
 	var templateBuffer bytes.Buffer
-	if tmpl := _templates[filepath.Join(_basePath, templatePath)]; tmpl != nil {
-		err = tmpl.Execute(&templateBuffer, p)
+	if tmpl := _templates[filepath.Join(getBasePath(), templatePath)]; tmpl != nil {
+		err = tmpl.Execute(&templateBuffer, context)
 		if err != nil {
 			return
 		}
 	}
 
-	pdata := pageData{Page: p, Content: template.HTML(templateBuffer.String())}
+	context = layoutData{Context: context, Content: template.HTML(templateBuffer.String())}
 
 	var layoutBuffer bytes.Buffer
-	if tmpl := _templates[filepath.Join(_basePath, layoutPath)]; tmpl != nil {
-		err = tmpl.Execute(&layoutBuffer, pdata)
+	if tmpl := _templates[filepath.Join(getBasePath(), layoutPath)]; tmpl != nil {
+		err = tmpl.Execute(&layoutBuffer, context)
 		if err != nil {
 			return
 		}
 	}
 
-	io.WriteString(resp, layoutBuffer.String())
+	html := layoutBuffer.String()
+	io.WriteString(resp.ResponseWriter, html)
 	return
 }
 

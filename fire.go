@@ -1,5 +1,10 @@
 package fire
 
+func init() {
+	initSettings()
+	initRouter()
+}
+
 type Controller interface {
 	Name() string
 }
@@ -8,12 +13,7 @@ type Page struct {
 	Title       string
 	Description string
 	Keywords    string
-	Context     interface{}
-}
-
-func AddRootController(c Controller) {
-	registerRootControllerName(c.Name())
-	registerController(c)
+	Data        interface{}
 }
 
 func AddController(c Controller) {

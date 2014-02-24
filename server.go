@@ -3,7 +3,6 @@ package fire
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"reflect"
 	"strings"
@@ -14,14 +13,18 @@ func Start() {
 }
 
 func StartWithPort(port int) {
+	initTemplates()
+
 	http.HandleFunc("/", frontController)
+
+	staticFileBase := fmt.Sprintf("/%s/", StaticFileBase())
 
 	// static files; in production these *should* be served by a web server
 	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.Handle("/www/", http.StripPrefix("/www/", http.FileServer(http.Dir("./www/"))))
-	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./www/css/"))))
-	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("./www/img/"))))
-	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./www/js/"))))
+	http.Handle(staticFileBase, http.StripPrefix(staticFileBase, http.FileServer(http.Dir("."+staticFileBase))))
+	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("."+staticFileBase+"css/"))))
+	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("."+staticFileBase+"img/"))))
+	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("."+staticFileBase+"js/"))))
 
 	fmt.Printf("Listening on port %d\n", port)
 	addr := fmt.Sprintf(":%d", port)
@@ -34,35 +37,17 @@ func StartWithPort(port int) {
 func frontController(rw http.ResponseWriter, req *http.Request) {
 	if pathIsRoot(req) {
 		if err := runAction(getRootControllerName(), getDefaultActionName(), rw, req); err != nil {
-			serveNotFound(rw)
+			renderStatus(rw, http.StatusNotFound)
 		}
 	} else {
 		if controllerName, actionName, err := parsePath(req); err == nil {
 			if err := runAction(controllerName, actionName, rw, req); err != nil {
-				serveNotFound(rw)
+				renderStatus(rw, http.StatusNotFound)
 			}
 		} else {
-			serveBadRequest(rw)
+			renderStatus(rw, http.StatusBadRequest)
 		}
 	}
-}
-
-func serveBadRequest(rw http.ResponseWriter) {
-	rw.WriteHeader(http.StatusBadRequest)
-	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	io.WriteString(rw, "Bad Request")
-}
-
-func serveNotFound(rw http.ResponseWriter) {
-	rw.WriteHeader(http.StatusNotFound)
-	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	io.WriteString(rw, "Not Found")
-}
-
-func serveInternalError(rw http.ResponseWriter) {
-	rw.WriteHeader(http.StatusInternalServerError)
-	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	io.WriteString(rw, "Internal Server Error")
 }
 
 func pathIsRoot(req *http.Request) bool {
@@ -85,8 +70,8 @@ func runAction(controllerName, actionName string, rw http.ResponseWriter, req *h
 	}
 
 	resp := &Response{ControllerName: controllerName, ActionName: actionName, ResponseWriter: rw}
-	rr := &Request{req}
-	in := []reflect.Value{reflect.ValueOf(resp), reflect.ValueOf(rr)}
+	r := &Request{HttpRequest: req}
+	in := []reflect.Value{reflect.ValueOf(resp), reflect.ValueOf(r)}
 	ai.controllerValue.Method(ai.methodIndex).Call(in)
 	return nil
 }

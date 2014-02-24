@@ -6,11 +6,11 @@ import (
 )
 
 type Request struct {
-	*http.Request
+	HttpRequest *http.Request
 }
 
 func (r Request) QueryInt(key string, def int) int {
-	value := r.URL.Query().Get(key)
+	value := r.HttpRequest.URL.Query().Get(key)
 	if value == "" {
 		return def
 	}
@@ -24,7 +24,7 @@ func (r Request) QueryInt(key string, def int) int {
 }
 
 func (r Request) QueryString(key string, def string) string {
-	value := r.URL.Query().Get(key)
+	value := r.HttpRequest.URL.Query().Get(key)
 	if value == "" {
 		return def
 	}

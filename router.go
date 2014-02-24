@@ -17,22 +17,14 @@ var (
 	_rootControllerName string
 )
 
-func init() {
+func initRouter() {
 	_responseType = reflect.TypeOf(new(Response))
 	_requestType = reflect.TypeOf(new(Request))
 	_actions = make(map[string]*actionInfo)
 }
 
-func registerRootControllerName(name string) {
-	_rootControllerName = name
-}
-
 func getRootControllerName() string {
-	if _rootControllerName == "" {
-		return "root"
-	} else {
-		return _rootControllerName
-	}
+	return _rootControllerName
 }
 
 func getDefaultActionName() string {
@@ -40,6 +32,9 @@ func getDefaultActionName() string {
 }
 
 func registerController(c Controller) {
+	if _rootControllerName == "" {
+		_rootControllerName = c.Name()
+	}
 	ctrlValue := reflect.ValueOf(c)
 	ctrlType := ctrlValue.Type()
 	for i := 0; i < ctrlType.NumMethod(); i++ {
