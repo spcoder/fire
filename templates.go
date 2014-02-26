@@ -19,7 +19,6 @@ type layoutData struct {
 }
 
 func initTemplates() {
-	_templates = make(map[string]*template.Template)
 	cacheTemplates()
 }
 
@@ -28,6 +27,8 @@ func getBasePath() string {
 }
 
 func cacheTemplates() {
+	_templates = make(map[string]*template.Template)
+
 	if filenames, err := filepath.Glob(filepath.Join(getBasePath(), "*", "*.html")); err != nil {
 		panic(err)
 	} else {
@@ -47,6 +48,10 @@ func cacheTemplates() {
 }
 
 func renderHTML(resp Response, templatePath, layoutPath string, context interface{}) (err error) {
+	if IsDevelopment() {
+		cacheTemplates()
+	}
+
 	var templateBuffer bytes.Buffer
 	if tmpl := _templates[filepath.Join(getBasePath(), templatePath)]; tmpl != nil {
 		err = tmpl.Execute(&templateBuffer, context)
