@@ -3,9 +3,16 @@ package fire
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
+)
+
+var (
+	indexFilePath string
 )
 
 func Start() {
@@ -15,16 +22,13 @@ func Start() {
 func StartWithPort(port int) {
 	initTemplates()
 
-	http.HandleFunc("/", frontController)
+	var err error
+	if indexFilePath, err = filepath.Abs(filepath.Join(StaticFileBase(), "index.html")); err != nil {
+		panic(err)
+	}
 
-	staticFileBase := fmt.Sprintf("/%s/", StaticFileBase())
-
-	// static files; in production these *should* be served by a web server
 	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.Handle(staticFileBase, http.StripPrefix(staticFileBase, http.FileServer(http.Dir("."+staticFileBase))))
-	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("."+staticFileBase+"css/"))))
-	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("."+staticFileBase+"img/"))))
-	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("."+staticFileBase+"js/"))))
+	http.HandleFunc("/", frontController)
 
 	fmt.Printf("Listening on port %d\n", port)
 	addr := fmt.Sprintf(":%d", port)
@@ -34,20 +38,57 @@ func StartWithPort(port int) {
 	}
 }
 
-func frontController(rw http.ResponseWriter, req *http.Request) {
+func frontController(rr http.ResponseWriter, req *http.Request) {
+	rw := NewFireResponseWriter(rr)
+	logMsg := fmt.Sprintf("%s - %s", req.Method, req.URL.Path)
+
 	if pathIsRoot(req) {
-		if err := runAction(getRootControllerName(), getDefaultActionName(), rw, req); err != nil {
-			renderStatus(rw, http.StatusNotFound)
-		}
-	} else {
-		if controllerName, actionName, err := parsePath(req); err == nil {
-			if err := runAction(controllerName, actionName, rw, req); err != nil {
+		if indexFileExists() {
+			http.ServeFile(rw, req, indexFilePath)
+		} else {
+			if err := runAction(getRootControllerName(), getDefaultActionName(), rw, req); err != nil {
 				renderStatus(rw, http.StatusNotFound)
 			}
+		}
+	} else {
+		if filePath, err := staticFileExists(req); err == nil {
+			http.ServeFile(rw, req, filePath)
 		} else {
-			renderStatus(rw, http.StatusBadRequest)
+			if controllerName, actionName, err := parsePath(req); err == nil {
+				if err := runAction(controllerName, actionName, rw, req); err != nil {
+					renderStatus(rw, http.StatusNotFound)
+				}
+			} else {
+				renderStatus(rw, http.StatusBadRequest)
+			}
 		}
 	}
+
+	logMsg += fmt.Sprintf(" [%d] (%s)", rw.Code, http.StatusText(rw.Code))
+	log.Println(logMsg)
+}
+
+func indexFileExists() bool {
+	_, err := os.Stat(indexFilePath)
+	return err == nil
+}
+
+func staticFileExists(req *http.Request) (filename string, err error) {
+	filename, err = filepath.Abs(filepath.Join(StaticFileBase(), req.URL.Path))
+	if err != nil {
+		return
+	}
+
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		return
+	}
+
+	if fileInfo.IsDir() {
+		err = errors.New("Static file is a directory")
+	}
+
+	return
 }
 
 func pathIsRoot(req *http.Request) bool {
