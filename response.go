@@ -43,6 +43,11 @@ func (r Response) RenderFile(templatePath string, data interface{}) {
 	r.RenderFileWithLayout(templatePath, "layout", data)
 }
 
+func (r Response) RenderText(s string) {
+	r.ResponseWriter.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	io.WriteString(r.ResponseWriter, s)
+}
+
 func (r Response) RenderFileWithLayout(templatePath, layoutPath string, data interface{}) {
 	resolvedLayoutPath := getLayoutPath(layoutPath)
 	err := renderHTML(r, templatePath, resolvedLayoutPath, data)
