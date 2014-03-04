@@ -63,10 +63,14 @@ func renderHTML(resp Response, templatePath, layoutPath string, context interfac
 	context = layoutData{Context: context, Content: template.HTML(templateBuffer.String())}
 
 	var layoutBuffer bytes.Buffer
-	if tmpl := _templates[filepath.Join(getBasePath(), layoutPath)]; tmpl != nil {
-		err = tmpl.Execute(&layoutBuffer, context)
-		if err != nil {
-			return
+	if layoutPath == "" {
+		layoutBuffer = templateBuffer
+	} else {
+		if tmpl := _templates[filepath.Join(getBasePath(), layoutPath)]; tmpl != nil {
+			err = tmpl.Execute(&layoutBuffer, context)
+			if err != nil {
+				return
+			}
 		}
 	}
 

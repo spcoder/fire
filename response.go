@@ -26,6 +26,19 @@ func (r Response) RenderWithLayout(layoutPath string, data interface{}) {
 	}
 }
 
+func (r Response) RenderWithoutLayout(data interface{}) {
+	templatePath := getTemplatePath(r.ControllerName, r.ActionName)
+	err := renderHTML(r, templatePath, "", data)
+	if err != nil {
+		log.Println(err)
+		r.RenderServerError()
+	}
+}
+
+func (r Response) RenderBytes(b []byte) {
+	r.ResponseWriter.Write(b)
+}
+
 func (r Response) RenderFile(templatePath string, data interface{}) {
 	r.RenderFileWithLayout(templatePath, "layout", data)
 }
