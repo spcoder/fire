@@ -52,7 +52,7 @@ func StaticFileBase() string {
 
 func initSettings() {
 	_settings = &Settings{
-		templateFileBase: "templates",
+		templateFileBase: "tmpl",
 		staticFileBase:   "www",
 		environment:      Development,
 	}

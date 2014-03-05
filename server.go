@@ -64,7 +64,7 @@ func frontController(rr http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	logMsg += fmt.Sprintf(" [%d] (%s)", rw.Code, http.StatusText(rw.Code))
+	logMsg += fmt.Sprintf(" [%d|%s]", rw.Code, http.StatusText(rw.Code))
 	log.Println(logMsg)
 }
 
